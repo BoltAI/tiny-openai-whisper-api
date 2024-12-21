@@ -2,20 +2,21 @@
 
 OpenAI Whisper API-style local server, runnig on FastAPI. This is for companies behind proxies or security firewalls.
 
-This API will be compatible with [OpenAI Whisper (speech to text) API](https://openai.com/blog/introducing-chatgpt-and-whisper-apis). See also  [Create transcription - API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/audio/create).
+This API will be compatible with [OpenAI Whisper (speech to text) API](https://openai.com/blog/introducing-chatgpt-and-whisper-apis). See also [Create transcription - API Reference - OpenAI API](https://platform.openai.com/docs/api-reference/audio/create).
 
 Some of code has been copied from [whisper-ui](https://github.com/hayabhay/whisper-ui)
 
 ## Setup
+
 This was built & tested on Python 3.10.8, Ubutu20.04/WSL2 but should also work on Python 3.9+.
 
 ```bash
 sudo apt install ffmpeg
-pip install fastapi python-multipart pydantic uvicorn ffmpeg-python openai-whisper
+pip install fastapi python-multipart pydantic uvicorn ffmpeg-python
 # or pip install -r requirements.txt
 ```
 
-or 
+or
 
 ```bash
 docker compose build
@@ -24,12 +25,13 @@ docker compose build
 ## Usage
 
 ### server
+
 ```bash
 export PYTHONPATH=.
 uvicorn main:app --host 0.0.0.0
 ```
 
-or 
+or
 
 ```bash
 docker compose up

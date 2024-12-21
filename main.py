@@ -10,73 +10,26 @@ from typing import Any, List, Union, Optional
 from datetime import timedelta
 
 import numpy as np
-import whisper
+import mlx_whisper
 
 app = FastAPI()
 
-#url https://api.openai.com/v1/audio/transcriptions \
-#  -H "Authorization: Bearer $OPENAI_API_KEY" \
-#  -H "Content-Type: multipart/form-data" \
-#  -F model="whisper-1" \
-#  -F file="@/path/to/file/openai.mp3"
-
-#{
-#  "text": "Imagine the wildest idea that you've ever had, and you're curious about how it might scale to something that's a 100, a 1,000 times bigger..."
-#}
-
-# -----
-# copied from https://github.com/hayabhay/whisper-ui
-
-# Whisper transcription functions
-# ----------------
-@lru_cache(maxsize=1)
-def get_whisper_model(whisper_model: str):
-    """Get a whisper model from the cache or download it if it doesn't exist"""
-    model = whisper.load_model(whisper_model)
-    return model
+# @lru_cache(maxsize=1)
+# def get_whisper_model(whisper_model: str):
+#     """Get a whisper model from the cache or download it if it doesn't exist"""
+#     model = mlx_whisper.load_model(whisper_model)
+#     return model
 
 def transcribe(audio_path: str, whisper_model: str, **whisper_args):
     """Transcribe the audio file using whisper"""
-
-    # Get whisper model
-    # NOTE: If mulitple models are selected, this may keep all of them in memory depending on the cache size
-    transcriber = get_whisper_model(whisper_model)
-
-    # Set configs & transcribe
-    if whisper_args["temperature_increment_on_fallback"] is not None:
-        whisper_args["temperature"] = tuple(
-            np.arange(whisper_args["temperature"], 1.0 + 1e-6, whisper_args["temperature_increment_on_fallback"])
-        )
-    else:
-        whisper_args["temperature"] = [whisper_args["temperature"]]
-
-    del whisper_args["temperature_increment_on_fallback"]
-
-    transcript = transcriber.transcribe(
-        audio_path,
-        **whisper_args,
-    )
-
+    transcript = mlx_whisper.transcribe(audio_path)
     return transcript
 
-
 WHISPER_DEFAULT_SETTINGS = {
-#    "whisper_model": "base",
     "whisper_model": "large-v2",
-    "temperature": 0.0,
-    "temperature_increment_on_fallback": 0.2,
-    "no_speech_threshold": 0.6,
-    "logprob_threshold": -1.0,
-    "compression_ratio_threshold": 2.4,
-    "condition_on_previous_text": True,
-    "verbose": False,
-#    "verbose": True,
-    "task": "transcribe",
-#    "task": "translation",
 }
 
 UPLOAD_DIR="/tmp"
-# -----
 
 @app.post('/v1/audio/transcriptions')
 async def transcriptions(model: str = Form(...),
@@ -120,14 +73,12 @@ async def transcriptions(model: str = Form(...),
 
     transcript = transcribe(audio_path=upload_name, **WHISPER_DEFAULT_SETTINGS)
 
-
     if response_format in ['text']:
         return transcript['text']
 
     if response_format in ['srt']:
         ret = ""
         for seg in transcript['segments']:
-            
             td_s = timedelta(milliseconds=seg["start"]*1000)
             td_e = timedelta(milliseconds=seg["end"]*1000)
 
@@ -151,11 +102,10 @@ async def transcriptions(model: str = Form(...),
         return ret
 
     if response_format in ['verbose_json']:
-        transcript.setdefault('task', WHISPER_DEFAULT_SETTINGS['task'])
+        transcript.setdefault('task', 'transcribe')
         transcript.setdefault('duration', transcript['segments'][-1]['end'])
         if transcript['language'] == 'ja':
             transcript['language'] = 'japanese'
         return transcript
 
     return {'text': transcript['text']}
-
